@@ -1,0 +1,124 @@
+package com.example.menu.activities;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.Patterns;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.Toast;
+
+import com.example.menu.R;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.auth.AuthResult;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+
+public class Registeration extends AppCompatActivity {
+    FirebaseAuth fAuth;
+    EditText email,password;
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_registeration);
+
+        email=findViewById(R.id.loginemail);
+        password=findViewById(R.id.loginpassword);
+
+        fAuth = FirebaseAuth.getInstance();
+        System.setProperty("https.protocols", "TLSv1.1");
+    }
+
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if(fAuth.getCurrentUser()!=null){
+            startActivity(new Intent(getApplicationContext(),MainScreen.class));
+            finish();
+        }
+    }
+
+    public void login(View view) {
+        String userEmail = email.getText().toString().trim();
+        String userPassword = password.getText().toString().trim();
+
+        if(TextUtils.isEmpty(userEmail)){
+            email.setError("email is required");
+            return;
+        }
+        if(!Patterns.EMAIL_ADDRESS.matcher(userEmail).matches()){
+            email.setError("unvalid email");
+            return;
+        }
+        if(TextUtils.isEmpty(userPassword)){
+            password.setError("password is required");
+            return;
+        }
+        if(userPassword.length() < 6){
+            password.setError("password must be >=6 characters");
+            return;
+        }
+
+        fAuth.signInWithEmailAndPassword(userEmail,userPassword).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
+            @Override
+            public void onComplete(@NonNull Task<AuthResult> task) {
+                if (task.isSuccessful()) {
+                    Toast.makeText(Registeration.this, "User Created", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(getApplicationContext(), MainScreen.class));
+                }else
+                    Toast.makeText(Registeration.this, task.getException().getMessage(), Toast.LENGTH_SHORT).show();
+            }
+
+        });
+
+    }
+
+    public void register(View view) {
+        startActivity(new Intent(getApplicationContext(), Refister_form.class));
+    }
+
+    public void resetPassword(View view) {
+        final EditText resetMail = new EditText(view.getContext());
+        final AlertDialog.Builder passwordResetDialog = new AlertDialog.Builder(view.getContext());
+
+        passwordResetDialog.setTitle("RESET PASSWORD");
+        passwordResetDialog.setMessage("enter your email..");
+        passwordResetDialog.setView(resetMail);
+
+        passwordResetDialog.setPositiveButton("yes", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String mail = resetMail.getText().toString().trim();
+                fAuth.sendPasswordResetEmail(mail).addOnSuccessListener(new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        Toast.makeText(Registeration.this, "true", Toast.LENGTH_SHORT).show();
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Toast.makeText(Registeration.this, "false", Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+        });
+
+        passwordResetDialog.setNegativeButton("no", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+
+            }
+        });
+        passwordResetDialog.show();
+
+    }
+}
